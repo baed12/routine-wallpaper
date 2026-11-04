@@ -97,6 +97,27 @@ public final class RoutineMath {
         return y;
     }
 
+    /** Index of the block running at "now", or -1 if none is running. */
+    public static int currentBlockIndex(List<Block> blocks, long now) {
+        for (int i = 0; i < blocks.size(); i++) {
+            Block b = blocks.get(i);
+            if (now >= b.start && now < b.end) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * Splits the blocks into two columns: the first half on the left, the
+     * rest on the right. With an odd count, the left column gets the extra.
+     */
+    public static List<List<Block>> columns(List<Block> blocks) {
+        int split = (blocks.size() + 1) / 2;
+        List<List<Block>> out = new ArrayList<>();
+        out.add(new ArrayList<>(blocks.subList(0, split)));
+        out.add(new ArrayList<>(blocks.subList(split, blocks.size())));
+        return out;
+    }
+
     private static long durationOf(Task t) {
         return Math.max(1L, t.end - t.start);
     }

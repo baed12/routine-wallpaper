@@ -2,6 +2,7 @@ package com.aj.routine;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,6 +22,18 @@ public class RoutineMathTest {
 
     static long at(String iso) {
         return LocalDateTime.parse(iso).atZone(ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+    }
+
+    static List<RoutineMath.Block> sampleBlocks() {
+        return Arrays.asList(
+            new RoutineMath.Block("Morning", at("2026-11-04T18:30:00"), at("2026-11-05T00:30:00"),
+                Arrays.asList("Visualization", "Planning", "Hydrate", "Work", "Bath", "Milk")),
+            new RoutineMath.Block("Midday", at("2026-11-05T00:30:00"), at("2026-11-05T03:30:00"),
+                Arrays.asList("English post", "Guitar", "Exercise", "Bath", "Walk")),
+            new RoutineMath.Block("Evening", at("2026-11-05T03:30:00"), at("2026-11-05T06:30:00"),
+                Arrays.asList("Deep voice", "Systems", "Guitar", "Bath")),
+            new RoutineMath.Block("Night", at("2026-11-05T06:30:00"), at("2026-11-05T10:00:00"),
+                Arrays.asList("Visualization", "Plan vision", "Sleep SOP")));
     }
 
     static List<RoutineMath.Task> sampleDay() {
@@ -99,6 +112,35 @@ public class RoutineMathTest {
         check("zero-length block is skipped",
               RoutineMath.expand(Arrays.asList(new RoutineMath.Block("X", 5L, 5L,
                   Arrays.asList("a")))).isEmpty(), "");
+
+        // Current block lookup
+        List<RoutineMath.Block> blocks = sampleBlocks();
+        check("block index at 19:00 is Morning (0)",
+              RoutineMath.currentBlockIndex(blocks, at("2026-11-04T19:00:00")) == 0, "");
+        check("block index at 01:00 is Midday (1)",
+              RoutineMath.currentBlockIndex(blocks, at("2026-11-05T01:00:00")) == 1, "");
+        check("block index at 07:00 is Night (3)",
+              RoutineMath.currentBlockIndex(blocks, at("2026-11-05T07:00:00")) == 3, "");
+        check("block index before wake is -1",
+              RoutineMath.currentBlockIndex(blocks, at("2026-11-04T18:00:00")) == -1, "");
+        check("block index after the day is -1",
+              RoutineMath.currentBlockIndex(blocks, at("2026-11-05T11:00:00")) == -1, "");
+        check("block boundary belongs to the new block",
+              RoutineMath.currentBlockIndex(blocks, at("2026-11-05T00:30:00")) == 1, "");
+
+        // Two-column split
+        check("4 blocks split 2 and 2",
+              RoutineMath.columns(blocks).get(0).size() == 2
+              && RoutineMath.columns(blocks).get(1).size() == 2, "");
+        check("3 blocks split 2 and 1",
+              RoutineMath.columns(blocks.subList(0, 3)).get(0).size() == 2
+              && RoutineMath.columns(blocks.subList(0, 3)).get(1).size() == 1, "");
+        check("0 blocks split 0 and 0",
+              RoutineMath.columns(new ArrayList<RoutineMath.Block>()).get(0).isEmpty()
+              && RoutineMath.columns(new ArrayList<RoutineMath.Block>()).get(1).isEmpty(), "");
+        check("left column holds the first blocks in order",
+              RoutineMath.columns(blocks).get(0).get(0).title.equals("Morning")
+              && RoutineMath.columns(blocks).get(1).get(0).title.equals("Evening"), "");
 
         System.out.println();
         System.out.println(passed + " passed, " + failed + " failed");
