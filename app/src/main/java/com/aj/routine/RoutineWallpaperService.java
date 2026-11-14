@@ -21,7 +21,7 @@ import java.util.Locale;
 public class RoutineWallpaperService extends WallpaperService {
 
     private static final long FRAME_MS = 1000L;        // highlight changes at most once a second
-    private static final long RELOAD_MS = 5 * 60_000L; // re-read the calendar every 5 minutes
+    private static final long RELOAD_MS = 5_000L;      // re-read the calendar every 5 seconds
 
     @Override
     public Engine onCreateEngine() {

@@ -16,6 +16,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
@@ -31,7 +32,7 @@ public class MainActivity extends Activity {
 
     private static final int REQ_CALENDAR = 1;
     private static final long TICK_MS = 1000L;
-    private static final long RELOAD_MS = 30_000L;
+    private static final long RELOAD_MS = 5_000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable tick = new Runnable() {
@@ -104,9 +105,17 @@ public class MainActivity extends Activity {
         root.addView(clockView);
 
         // 3. The routine, two columns
+        // Spacer pushes the routine down so it sits in the bottom half,
+        // below the music controls and clock.
+        View spacer = new View(this);
+        root.addView(spacer, new LinearLayout.LayoutParams(0, 0, 1f));
+
         routineRow = new LinearLayout(this);
         routineRow.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(routineRow);
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(routineRow);
+        root.addView(scroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.5f));
 
         status = text(14, Color.rgb(170, 170, 185), false);
         status.setGravity(Gravity.CENTER);
