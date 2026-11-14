@@ -140,15 +140,15 @@ public class RoutineWallpaperService extends WallpaperService {
 
             float headerSize = w * 0.042f;
             float taskSize = w * 0.032f;
-            float lineGap = taskSize * 1.6f;
+            float lineGap = taskSize * 1.45f;
             headerPaint.setTextSize(headerSize);
             taskPaint.setTextSize(taskSize);
 
             int current = RoutineMath.currentBlockIndex(blocks, now);
             List<List<RoutineMath.Block>> columns = RoutineMath.columns(blocks);
 
-            float top = h * 0.30f;                 // keep the lock-screen clock area clear
-            float bottom = h * 0.92f;
+            float top = h * 0.52f;                 // bottom half only; the top half is for the clock and music
+            float bottom = h * 0.97f;
             float[] columnX = {w * 0.07f, w * 0.53f};
 
             for (int c = 0; c < columns.size(); c++) {
