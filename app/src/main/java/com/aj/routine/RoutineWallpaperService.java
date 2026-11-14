@@ -1,10 +1,12 @@
 package com.aj.routine;
 
+import android.database.ContentObserver;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.CalendarContract;
 import android.service.wallpaper.WallpaperService;
 import android.view.SurfaceHolder;
 
@@ -40,6 +42,16 @@ public class RoutineWallpaperService extends WallpaperService {
         private List<RoutineMath.Block> blocks = new ArrayList<>();
         private long lastLoad = 0L;
         private boolean visible = false;
+        private boolean observing = false;
+
+        // Fires the moment the phone's calendar changes, so the wallpaper updates instantly.
+        private final ContentObserver calendarObserver = new ContentObserver(handler) {
+            @Override
+            public void onChange(boolean selfChange) {
+                lastLoad = 0L;
+                drawFrame();
+            }
+        };
 
         RoutineEngine() {
             headerPaint.setFakeBoldText(true);
@@ -49,12 +61,25 @@ public class RoutineWallpaperService extends WallpaperService {
             messagePaint.setTextAlign(Paint.Align.CENTER);
         }
 
+        private void setObserving(boolean on) {
+            if (on == observing) return;
+            observing = on;
+            if (on) {
+                RoutineWallpaperService.this.getContentResolver().registerContentObserver(
+                        CalendarContract.CONTENT_URI, true, calendarObserver);
+            } else {
+                RoutineWallpaperService.this.getContentResolver().unregisterContentObserver(calendarObserver);
+            }
+        }
+
         @Override
         public void onVisibilityChanged(boolean isVisible) {
             visible = isVisible;
             if (visible) {
+                setObserving(CalendarReader.hasPermission(RoutineWallpaperService.this));
                 drawFrame();
             } else {
+                setObserving(false);
                 handler.removeCallbacks(frame);
             }
         }
@@ -63,6 +88,7 @@ public class RoutineWallpaperService extends WallpaperService {
         public void onSurfaceDestroyed(SurfaceHolder holder) {
             super.onSurfaceDestroyed(holder);
             visible = false;
+            setObserving(false);
             handler.removeCallbacks(frame);
         }
 
@@ -70,6 +96,7 @@ public class RoutineWallpaperService extends WallpaperService {
         public void onDestroy() {
             super.onDestroy();
             visible = false;
+            setObserving(false);
             handler.removeCallbacks(frame);
         }
 

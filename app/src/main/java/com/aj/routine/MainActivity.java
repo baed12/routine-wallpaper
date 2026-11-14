@@ -6,8 +6,10 @@ import android.app.WallpaperManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Color;
+import android.database.ContentObserver;
 import android.graphics.Typeface;
 import android.media.session.MediaController;
+import android.provider.CalendarContract;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -54,6 +56,15 @@ public class MainActivity extends Activity {
     private List<RoutineMath.Block> blocks = new ArrayList<>();
     private long lastLoad = 0L;
 
+    // Fires the moment the phone's calendar changes, so the routine updates instantly.
+    private final ContentObserver calendarObserver = new ContentObserver(handler) {
+        @Override
+        public void onChange(boolean selfChange) {
+            lastLoad = 0L;
+            refresh();
+        }
+    };
+
     private final SimpleDateFormat clockFormat = new SimpleDateFormat("h:mm:ss a", Locale.getDefault());
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", Locale.getDefault());
 
@@ -96,26 +107,26 @@ public class MainActivity extends Activity {
         grantMusicButton.setOnClickListener(v ->
                 startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
         music.addView(grantMusicButton);
-        root.addView(music);
+        // Top half: music controls and clock
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.VERTICAL);
+        top.addView(music);
 
-        // 2. The clock
         clockView = text(44, Color.WHITE, true);
         clockView.setGravity(Gravity.CENTER);
         clockView.setPadding(0, dp(20), 0, dp(12));
-        root.addView(clockView);
+        top.addView(clockView);
+        root.addView(top, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        // 3. The routine, two columns
-        // Spacer pushes the routine down so it sits in the bottom half,
-        // below the music controls and clock.
-        View spacer = new View(this);
-        root.addView(spacer, new LinearLayout.LayoutParams(0, 0, 1f));
+        // Bottom half: the routine
 
         routineRow = new LinearLayout(this);
         routineRow.setOrientation(LinearLayout.HORIZONTAL);
         ScrollView scroll = new ScrollView(this);
         scroll.addView(routineRow);
         root.addView(scroll, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.5f));
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
         status = text(14, Color.rgb(170, 170, 185), false);
         status.setGravity(Gravity.CENTER);
@@ -142,6 +153,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        registerCalendarObserver();
         handler.removeCallbacks(tick);
         handler.post(tick);
     }
@@ -149,6 +161,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        getContentResolver().unregisterContentObserver(calendarObserver);
         handler.removeCallbacks(tick);
     }
 
@@ -156,7 +169,16 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         lastLoad = 0L; // reload the routine right away
+        registerCalendarObserver();
         refresh();
+    }
+
+    private void registerCalendarObserver() {
+        getContentResolver().unregisterContentObserver(calendarObserver);
+        if (CalendarReader.hasPermission(this)) {
+            getContentResolver().registerContentObserver(
+                    CalendarContract.CONTENT_URI, true, calendarObserver);
+        }
     }
 
     private void refresh() {
